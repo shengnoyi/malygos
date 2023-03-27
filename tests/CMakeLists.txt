@@ -10,11 +10,13 @@ FetchContent_MakeAvailable(googletest)
 add_executable(
   unit_tests
   test_main.cpp
+  test_geometry.cpp
 )
 target_link_libraries(
   unit_tests
   PRIVATE
   Model
+  Geometry
   gtest_main
 )
 

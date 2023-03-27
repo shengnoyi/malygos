@@ -60,6 +60,11 @@ template<size_t DIM,typename T>vec<DIM,T> operator-(vec<DIM,T> lhs, const vec<DI
     return lhs;
 }
 
+template<typename T>vec<3,T> operator^(vec<3,T> lhs, const vec<3,T>& rhs) {
+    vec<3,T> cross_product(lhs[1]*rhs[2]-lhs[2]*rhs[1], lhs[2]*rhs[0]-lhs[0]*rhs[2], lhs[0]*rhs[1]-lhs[1]*rhs[0]);
+    return cross_product;
+}
+
 template<size_t DIM,typename T,typename U> vec<DIM,T> operator*(vec<DIM,T> lhs, const U& rhs) {
     for (size_t i=DIM; i--; lhs[i]*=rhs);
     return lhs;
