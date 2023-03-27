@@ -25,16 +25,25 @@ int main(int argc, char **argv) {
   }
 
   float *zbuffer = new float[width * height];
-  for (int i = width * height; i--; zbuffer[i] = -std::numeric_limits<float>::max()) {
-    // noop
+  for (int i = width * height; i--;) {
+    zbuffer[i] = -std::numeric_limits<float>::max();
   }
 
   TGAImage image(width, height, TGAImage::RGB);
   for (int i = 0; i < model->nfaces(); i++) {
     std::vector<int> face = model->face(i);
     Vec3f pts[3];
-    for (int i = 0; i < 3; i++) pts[i] = renderer->world2screen(model->vert(face[i]));
-    renderer->triangle(pts, zbuffer, image, TGAColor(rand() % 255, rand() % 255, rand() % 255, 255));
+    Vec3f world_coords[3];
+    for (int i = 0; i < 3; i++) {
+      pts[i] = renderer->world2screen(model->vert(face[i]));
+      world_coords[i] = model->vert(face[i]);
+    }
+    Vec3f n = (world_coords[2] - world_coords[0]) ^ (world_coords[1] - world_coords[0]);
+    n.normalize();
+    float intensity = n * light_dir;
+    if (intensity > 0) {
+      renderer->triangle(pts, zbuffer, image, TGAColor(intensity * 255, intensity * 255, intensity * 255, 255));
+    }
   }
 
   image.flip_vertically();  // i want to have the origin at the left bottom corner of the image
