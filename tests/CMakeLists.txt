@@ -9,7 +9,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(
   unit_tests
-  test_main.cpp
+  test_model.cpp
   test_geometry.cpp
 )
 target_link_libraries(
@@ -17,6 +17,7 @@ target_link_libraries(
   PRIVATE
   Model
   Geometry
+  TGAImage
   gtest_main
 )
 

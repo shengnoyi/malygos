@@ -32,7 +32,7 @@ void Renderer::line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor co
   }
 }
 
-void Renderer::triangle(Vec3f *pts, float *zbuffer, TGAImage &image, TGAColor color) {
+void Renderer::triangle(Vec3f *pts, Vec2f *uvs, float *zbuffer, TGAImage &image, TGAImage &texture, float intensity) {
   Vec2f bboxmin(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
   Vec2f bboxmax(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
   Vec2f clamp(image.get_width() - 1, image.get_height() - 1);
@@ -47,11 +47,16 @@ void Renderer::triangle(Vec3f *pts, float *zbuffer, TGAImage &image, TGAColor co
     for (P.y = bboxmin.y; P.y <= bboxmax.y; P.y++) {
       Vec3f bc_screen = barycentric(pts[0], pts[1], pts[2], P);
       if (bc_screen.x < 0 || bc_screen.y < 0 || bc_screen.z < 0) continue;
+      Vec2f uv(0, 0);
       P.z = 0;
-      for (int i = 0; i < 3; i++) P.z += pts[i][2] * bc_screen[i];
+      for (int i = 0; i < 3; i++) {
+        P.z = P.z + pts[i][2] * bc_screen[i];
+        uv = uv + (uvs[i] * bc_screen[i]);
+      }
       if (zbuffer[int(P.x + P.y * width)] < P.z) {
+        TGAColor color = texture.get(int(uv.x * texture.get_width()), int(uv.y * texture.get_height()));
         zbuffer[int(P.x + P.y * width)] = P.z;
-        image.set(P.x, P.y, color);
+        image.set(P.x, P.y, color * intensity);
       }
     }
   }

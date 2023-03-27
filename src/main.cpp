@@ -30,19 +30,30 @@ int main(int argc, char **argv) {
   }
 
   TGAImage image(width, height, TGAImage::RGB);
+  TGAImage texture;
+  texture.read_tga_file("obj/african_head/african_head_diffuse.tga");
+  /**
+   * @brief ref: https://github.com/ssloy/tinyrenderer/wiki/Visual-troubleshooting#texturing
+   * > The texture needs to be vertically flipped:
+   */
+  texture.flip_vertically();
+
   for (int i = 0; i < model->nfaces(); i++) {
     std::vector<int> face = model->face(i);
+    std::vector<int> face_texture = model->face_texture(i);
     Vec3f pts[3];
+    Vec2f uvs[3];
     Vec3f world_coords[3];
     for (int i = 0; i < 3; i++) {
       pts[i] = renderer->world2screen(model->vert(face[i]));
+      uvs[i] = model->texture_vert(face_texture[i]);
       world_coords[i] = model->vert(face[i]);
     }
     Vec3f n = (world_coords[2] - world_coords[0]) ^ (world_coords[1] - world_coords[0]);
     n.normalize();
     float intensity = n * light_dir;
     if (intensity > 0) {
-      renderer->triangle(pts, zbuffer, image, TGAColor(intensity * 255, intensity * 255, intensity * 255, 255));
+      renderer->triangle(pts, uvs, zbuffer, image, texture, intensity);
     }
   }
 
