@@ -5,32 +5,31 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "geometry.h"
 
-Model::Model(const char *filename) : verts_(),
-                                     texture_verts_(),
-                                     faces_(),
-                                     face_textures_() {
+
+Model::Model(const char *filename)
+    : verts_(), texture_verts_(), faces_(), face_textures_() {
   std::ifstream in;
   in.open(filename, std::ifstream::in);
   if (in.fail()) return;
+
   std::string line;
-  while (!in.eof()) {
-    std::getline(in, line);
-    std::istringstream iss(line.c_str());
+  while (std::getline(in, line)) {
+    std::istringstream iss(line);
     char trash;
-    if (!line.compare(0, 2, "v ")) {
-      // 到空格会停止；
+    if (line.compare(0, 2, "v ") == 0) {
       iss >> trash;
-      Vec3f v;
+      Eigen::Vector3f v;
       for (int i = 0; i < 3; i++) iss >> v[i];
       verts_.push_back(v);
-    } else if (!line.compare(0, 4, "vt  ")) {
+    } else if (line.compare(0, 4, "vt  ") == 0) {
       iss >> trash;
       iss >> trash;
-      Vec2f v;
+      Eigen::Vector2f v;
       for (int i = 0; i < 2; i++) iss >> v[i];
       texture_verts_.push_back(v);
-    } else if (!line.compare(0, 2, "f ")) {
+    } else if (line.compare(0, 2, "f ") == 0) {
       std::vector<int> f;
       std::vector<int> texture;
       int itrash, idx, texture_idx;
@@ -42,42 +41,40 @@ Model::Model(const char *filename) : verts_(),
       }
       faces_.push_back(f);
       face_textures_.push_back(texture);
-    } else {
-      // skip
     }
   }
-  std::cerr << "# v# " << verts_.size()
-            << " vt# " << texture_verts_.size()
-            << " f# " << faces_.size()
-            << std::endl;
-}
 
-Model::~Model() {
+  std::cerr << "# v# " << verts_.size() << " vt# " << texture_verts_.size()
+            << " f# " << faces_.size() << std::endl;
 }
 
 int Model::nverts() {
-  return (int)verts_.size();
+  return static_cast<int>(verts_.size());
 }
 
 int Model::ntextureverts() {
-  return (int)texture_verts_.size();
+  return static_cast<int>(texture_verts_.size());
 }
 
 int Model::nfaces() {
-  return (int)faces_.size();
+  return static_cast<int>(faces_.size());
 }
 
 std::vector<int> Model::face(int idx) {
   return faces_[idx];
 }
+
 std::vector<int> Model::face_texture(int idx) {
   return face_textures_[idx];
 }
 
-Vec3f Model::vert(int i) {
+Eigen::Vector3f Model::vert(int i) {
   return verts_[i];
 }
 
-Vec2f Model::texture_vert(int i) {
+Eigen::Vector2f Model::texture_vert(int i) {
   return texture_verts_[i];
+}
+
+Model::~Model() {
 }

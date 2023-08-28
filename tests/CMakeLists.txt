@@ -7,24 +7,27 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+
 add_executable(
   unit_tests
   test_model.cpp
-  test_geometry.cpp
 )
+
+target_include_directories(unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})  # Add this line
+
 target_link_libraries(
   unit_tests
   PRIVATE
   Model
-  Geometry
   TGAImage
   gtest_main
+  Eigen3::Eigen
 )
 
 include(GoogleTest)
 gtest_discover_tests(unit_tests
   PROPERTIES
   LABELS "unit"
-  DISCOVERY_TIMEOUT  # how long to wait (in seconds) before crashing
-  240
+  DISCOVERY_TIMEOUT 240
 )

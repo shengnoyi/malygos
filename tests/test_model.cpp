@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <Eigen/Core>
+#include <Eigen/Dense>
+
 #include "model.h"
 #include "tgaimage.h"
 
@@ -15,11 +18,11 @@ TEST(TestModel, BasicAssertions) {
   EXPECT_EQ(face[0] + 1, 24);
   EXPECT_EQ(face[1] + 1, 25);
   EXPECT_EQ(face[2] + 1, 26);
-  EXPECT_FLOAT_EQ(model->vert(0).x, -0.000581696);
-  EXPECT_FLOAT_EQ(model->vert(1).x, 0.000283538);
-  EXPECT_FLOAT_EQ(model->vert(face[0]).x, 0.134781);
-  EXPECT_FLOAT_EQ(model->vert(face[0]).y, -0.14723);
-  EXPECT_FLOAT_EQ(model->vert(face[0]).z, 0.48805);
+  EXPECT_FLOAT_EQ(model->vert(0).x(), -0.000581696);
+  EXPECT_FLOAT_EQ(model->vert(1).x(), 0.000283538);
+  EXPECT_FLOAT_EQ(model->vert(face[0]).x(), 0.134781);
+  EXPECT_FLOAT_EQ(model->vert(face[0]).y(), -0.14723);
+  EXPECT_FLOAT_EQ(model->vert(face[0]).z(), 0.48805);
 
   // f2
   std::vector<int> face2 = model->face(1);
@@ -32,9 +35,9 @@ TEST(TestModel, BasicAssertions) {
   EXPECT_EQ(face_texture[0] + 1, 1);
   EXPECT_EQ(face_texture[1] + 1, 2);
   EXPECT_EQ(face_texture[2] + 1, 3);
-  EXPECT_FLOAT_EQ(model->texture_vert(0).x, 0.532);
-  EXPECT_FLOAT_EQ(model->texture_vert(face_texture[0]).x, 0.532);
-  EXPECT_FLOAT_EQ(model->texture_vert(face_texture[0]).y, 0.923);
+  EXPECT_FLOAT_EQ(model->texture_vert(0).x(), 0.532);
+  EXPECT_FLOAT_EQ(model->texture_vert(face_texture[0]).x(), 0.532);
+  EXPECT_FLOAT_EQ(model->texture_vert(face_texture[0]).y(), 0.923);
 
   // face texture 2
   std::vector<int> face2_texture = model->face_texture(1);
@@ -57,11 +60,11 @@ TEST(TestModel, ReadTextureAssertions) {
   EXPECT_EQ(face_texture[0] + 1, 1);
   EXPECT_EQ(face_texture[1] + 1, 2);
   EXPECT_EQ(face_texture[2] + 1, 3);
-  Vec2f vt1 = model->texture_vert(face_texture[0]);
-  EXPECT_FLOAT_EQ(vt1.x, 0.532);
-  EXPECT_FLOAT_EQ(vt1.y, 0.923);
+  Eigen::Vector2f vt1 = model->texture_vert(face_texture[0]);
+  EXPECT_FLOAT_EQ(vt1.x(), 0.532);
+  EXPECT_FLOAT_EQ(vt1.y(), 0.923);
 
-  TGAColor color = image.get(image.get_width() * vt1.x, image.get_height() * vt1.y);
+  TGAColor color = image.get(image.get_width() * vt1.x(), image.get_height() * vt1.y());
   // 在 TGAColor 中，constructor 的接口是 rgba, 但是内部以 bgra 存储的。
   TGAColor expected_color(90, 70, 59, 0);
   EXPECT_EQ(color[0], expected_color[0]);
