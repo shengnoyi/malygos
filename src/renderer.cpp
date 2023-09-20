@@ -4,10 +4,20 @@
 #include <Eigen/Dense>
 #include <cmath>
 #include <cstdlib>
+#include <iostream>
 
 #include "tgaimage.h"
 
-Renderer::Renderer(int w, int h) : width(w), height(h) {}
+Renderer::Renderer(int w, int h) {
+  width = w;
+  height = h;
+  // Initialize other member variables here if needed
+  _view = Eigen::Matrix4f::Identity();  // Set the view matrix to the identity matrix
+  _viewport << w / 2, 0, 0, (w - 1) / 2,
+      0, h / 2, 0, (h - 1) / 2,
+      0, 0, 1, 0,
+      0, 0, 0, 1;
+}
 
 void Renderer::line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
   bool steep = false;
@@ -34,33 +44,34 @@ void Renderer::line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor co
 
 void Renderer::triangle(Eigen::Vector3f *pts, Eigen::Vector2f *uvs, float *zbuffer,
                         TGAImage &image, TGAImage &texture, float intensity) {
-  Eigen::Vector2f bboxmin(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-  Eigen::Vector2f bboxmax(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
-  Eigen::Vector2f clamp(image.get_width() - 1, image.get_height() - 1);
+  Eigen::Vector2i bboxmin(std::numeric_limits<int>::max(), std::numeric_limits<int>::max());
+  Eigen::Vector2i bboxmax(-std::numeric_limits<int>::max(), -std::numeric_limits<int>::max());
+  Eigen::Vector2i clamp(width - 1, height - 1);
 
   for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 2; j++) {
-      bboxmin[j] = std::max(0.f, std::min(bboxmin[j], pts[i][j]));
-      bboxmax[j] = std::min(clamp[j], std::max(bboxmax[j], pts[i][j]));
-    }
-  }
+    bboxmin.x() = std::max(0, std::min(bboxmin.x(), static_cast<int>(pts[i].x())));
+    bboxmin.y() = std::max(0, std::min(bboxmin.y(), static_cast<int>(pts[i].y())));
 
+    bboxmax.x() = std::min(clamp.x(), std::max(bboxmax.x(), static_cast<int>(pts[i].x())));
+    bboxmax.y() = std::min(clamp.y(), std::max(bboxmax.y(), static_cast<int>(pts[i].y())));
+  }
   Eigen::Vector3f P;
   for (P.x() = bboxmin.x(); P.x() <= bboxmax.x(); P.x()++) {
     for (P.y() = bboxmin.y(); P.y() <= bboxmax.y(); P.y()++) {
       Eigen::Vector3f bc_screen = barycentric(pts[0], pts[1], pts[2], P);
-      if (bc_screen.x() < 0 || bc_screen.y() < 0 || bc_screen.z() < 0) continue;
-      Eigen::Vector2f uv(0, 0);
-      P.z() = 0;
-      for (int i = 0; i < 3; i++) {
-        P.z() += pts[i][2] * bc_screen[i];
-        uv += uvs[i] * bc_screen[i];
-      }
-      if (zbuffer[static_cast<int>(P.x() + P.y() * width)] < P.z()) {
-        TGAColor color = texture.get(static_cast<int>(uv.x() * texture.get_width()),
-                                     static_cast<int>(uv.y() * texture.get_height()));
-        zbuffer[static_cast<int>(P.x() + P.y() * width)] = P.z();
-        image.set(static_cast<int>(P.x()), static_cast<int>(P.y()), color * intensity);
+      if (bc_screen.x() >= 0 && bc_screen.y() >= 0 && bc_screen.z() >= 0) {
+        Eigen::Vector2f uv(0, 0);
+        P.z() = pts[0].z() * bc_screen[0] + pts[1].z() * bc_screen[1] + pts[2].z() * bc_screen[2];
+        for (int i = 0; i < 3; i++) {
+          uv += uvs[i] * bc_screen[i];
+        }
+        int zbufferIndex = int(P.x() + P.y() * width);
+        if (zbuffer[zbufferIndex] < P.z()) {
+          TGAColor color = texture.get(int(uv.x() * texture.get_width()),
+                                       int(uv.y() * texture.get_height()));
+          zbuffer[zbufferIndex] = P.z();
+          image.set(int(P.x()), int(P.y()), color * intensity);
+        }
       }
     }
   }
@@ -82,6 +93,63 @@ Eigen::Vector3f Renderer::barycentric(Eigen::Vector3f A, Eigen::Vector3f B, Eige
 }
 
 Eigen::Vector3f Renderer::world2screen(Eigen::Vector3f v) {
-  return Eigen::Vector3f(static_cast<int>((v.x() + 1.) * width / 2. + .5),
-                         static_cast<int>((v.y() + 1.) * height / 2. + .5), v.z());
+  Eigen::Vector4f m = (_viewport * _mvp * Eigen::Vector4f(v.x(), v.y(), v.z(), 1.0));
+
+  return (m / m[3]).head(3);
+}
+Eigen::Matrix4f Renderer::lookAt(const Eigen::Vector3f &eye, const Eigen::Vector3f &center, const Eigen::Vector3f &up) {
+  Eigen::Vector3f zAxis = (eye - center).normalized();
+  Eigen::Vector3f xAxis = up.cross(zAxis).normalized();
+  Eigen::Vector3f yAxis = zAxis.cross(xAxis);
+
+  Eigen::Matrix4f translation;
+  translation << 1, 0, 0, -eye.x(),
+      0, 1, 0, -eye.y(),
+      0, 0, 1, -eye.z(),
+      0, 0, 0, 1;
+
+  Eigen::Matrix4f rotation;
+  rotation << xAxis.x(), xAxis.y(), xAxis.z(), 0,
+      yAxis.x(), yAxis.y(), yAxis.z(), 0,
+      zAxis.x(), zAxis.y(), zAxis.z(), 0,
+      0, 0, 0, 1;
+
+  return rotation * translation;
+}
+
+Eigen::Matrix4f Renderer::orthographic(float l, float r, float b, float t, float n, float f) {
+  // 我们使用右手坐标系，所以 f 应该小于 n
+  if (l < r && b < t && f < n) {
+    Eigen::Matrix4f projectionMatrix = Eigen::Matrix4f::Identity();
+    projectionMatrix << 2.0f / (r - l), 0.0f, 0.0f, -(r + l) / (r - l),
+        0.0f, 2.0f / (t - b), 0.0f, -(t + b) / (t - b),
+        0.0f, 0.0f, 2.0f / (n - f), -(n + f) / (n - f),
+        0.0f, 0.0f, 0.0f, 1.0f;
+
+    return projectionMatrix;
+  } else {
+    throw std::invalid_argument("Invalid orthographic projection parameters.");
+  }
+}
+Eigen::Matrix4f Renderer::perspective(float l, float r, float b, float t, float n, float f) {
+  Eigen::Matrix4f MOrth = orthographic(l, r, b, t, n, f);
+  Eigen::Matrix4f MP = Eigen::Matrix4f::Identity();
+  MP << n, 0, 0, 0,
+      0, n, 0, 0,
+      0, 0, n + f, -f * n,
+      0, 0, 1, 0;
+  return MOrth * MP;
+}
+
+void Renderer::setModel(const Eigen::Matrix4f &model) {
+  _model = model;
+}
+void Renderer::setView(const Eigen::Matrix4f &view) {
+  _view = view;
+}
+void Renderer::setProjection(const Eigen::Matrix4f &projection) {
+  _projection = projection;
+}
+void Renderer::updateMvp() {
+  _mvp = _projection * _view * _model;
 }

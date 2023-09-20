@@ -16,12 +16,24 @@ int main(int argc, char **argv) {
   const int height = 800;
   Renderer *renderer = new Renderer(width, height);
   Model *model = nullptr;
-
-  if (argc == 2) {
+  TGAImage texture;
+  if (argc == 3) {
     model = new Model(argv[1]);
+    texture.read_tga_file(argv[2]);
   } else {
     model = new Model("obj/african_head/african_head.obj");
+    texture.read_tga_file("obj/african_head/african_head_diffuse.tga");
   }
+  texture.flip_vertically();
+
+  Eigen::Vector3f eye(0.0f, 0.0f, 1.5f);
+  Eigen::Vector3f center(0.0f, 0.0f, 0.0f);
+  Eigen::Vector3f up(0.0f, 1.0f, 0.0f);
+
+  renderer->setModel(Eigen::Matrix4f::Identity());
+  renderer->setView(renderer->lookAt(eye, center, up));
+  renderer->setProjection(renderer->perspective(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -10.0f));
+  renderer->updateMvp();
 
   float *zbuffer = new float[width * height];
   for (int i = width * height; i--;) {
@@ -29,9 +41,6 @@ int main(int argc, char **argv) {
   }
 
   TGAImage image(width, height, TGAImage::RGB);
-  TGAImage texture;
-  texture.read_tga_file("obj/african_head/african_head_diffuse.tga");
-  texture.flip_vertically();
 
   Eigen::Vector3f light_dir(0, 0, -1);  // Define light_dir
 

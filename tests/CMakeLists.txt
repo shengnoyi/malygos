@@ -12,6 +12,7 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 add_executable(
   unit_tests
   test_model.cpp
+  test_renderer.cpp
 )
 
 target_include_directories(unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})  # Add this line
@@ -20,6 +21,7 @@ target_link_libraries(
   unit_tests
   PRIVATE
   Model
+  Renderer
   TGAImage
   gtest_main
   Eigen3::Eigen
