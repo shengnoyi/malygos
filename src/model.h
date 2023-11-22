@@ -9,8 +9,10 @@ class Model {
  private:
   std::vector<Eigen::Vector3f> verts_;          // Use Eigen's Vector3f
   std::vector<Eigen::Vector2f> texture_verts_;  // Use Eigen's Vector2f
+  std::vector<Eigen::Vector3f> normal_verts_;  // Use Eigen's Vector2f
   std::vector<std::vector<int>> faces_;
   std::vector<std::vector<int>> face_textures_;
+  std::vector<std::vector<int>> face_normals_;
 
  public:
   Model(const char *filename);
@@ -20,8 +22,10 @@ class Model {
   int nfaces();
   Eigen::Vector3f vert(int i);          // Return Eigen's Vector3f
   Eigen::Vector2f texture_vert(int i);  // Return Eigen's Vector2f
+  Eigen::Vector3f normal_vert(int i);  // Return Eigen's Vector2f
   std::vector<int> face(int idx);
   std::vector<int> face_texture(int idx);
+  std::vector<int> face_normal(int idx);
 };
 
 #endif  //__MODEL_H__

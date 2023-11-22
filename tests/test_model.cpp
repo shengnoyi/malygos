@@ -38,6 +38,17 @@ TEST(TestModel, BasicAssertions) {
   EXPECT_FLOAT_EQ(model->texture_vert(0).x(), 0.532);
   EXPECT_FLOAT_EQ(model->texture_vert(face_texture[0]).x(), 0.532);
   EXPECT_FLOAT_EQ(model->texture_vert(face_texture[0]).y(), 0.923);
+  std::vector<int> face_normal = model->face_normal(0);
+  EXPECT_EQ(face_normal[0] + 1, 24);
+  EXPECT_EQ(face_normal[1] + 1, 25);
+  EXPECT_EQ(face_normal[2] + 1, 26);
+  EXPECT_FLOAT_EQ(model->normal_vert(0).x(), 0.001);
+  EXPECT_FLOAT_EQ(model->normal_vert(0).y(), 0.482);
+  EXPECT_FLOAT_EQ(model->normal_vert(0).z(), -0.876);
+  // -0.485 0.523 -0.701
+  EXPECT_FLOAT_EQ(model->normal_vert(face_normal[0]).x(), -0.485);
+  EXPECT_FLOAT_EQ(model->normal_vert(face_normal[0]).y(), 0.523);
+  EXPECT_FLOAT_EQ(model->normal_vert(face_normal[0]).z(), -0.701);
 
   // face texture 2
   std::vector<int> face2_texture = model->face_texture(1);

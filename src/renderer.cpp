@@ -42,8 +42,8 @@ void Renderer::line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor co
   }
 }
 
-void Renderer::triangle(Eigen::Vector3f *pts, Eigen::Vector2f *uvs, float *zbuffer,
-                        TGAImage &image, TGAImage &texture, float intensity) {
+void Renderer::triangle(Eigen::Vector3f *pts, Eigen::Vector2f *uvs, TGAImage &zbuffer,
+                        TGAImage &image, TGAImage &texture, float *intensities) {
   Eigen::Vector2i bboxmin(std::numeric_limits<int>::max(), std::numeric_limits<int>::max());
   Eigen::Vector2i bboxmax(-std::numeric_limits<int>::max(), -std::numeric_limits<int>::max());
   Eigen::Vector2i clamp(width - 1, height - 1);
@@ -58,19 +58,21 @@ void Renderer::triangle(Eigen::Vector3f *pts, Eigen::Vector2f *uvs, float *zbuff
   Eigen::Vector3f P;
   for (P.x() = bboxmin.x(); P.x() <= bboxmax.x(); P.x()++) {
     for (P.y() = bboxmin.y(); P.y() <= bboxmax.y(); P.y()++) {
+      int x = P.x();
+      int y = P.y();
       Eigen::Vector3f bc_screen = barycentric(pts[0], pts[1], pts[2], P);
       if (bc_screen.x() >= 0 && bc_screen.y() >= 0 && bc_screen.z() >= 0) {
-        Eigen::Vector2f uv(0, 0);
-        P.z() = pts[0].z() * bc_screen[0] + pts[1].z() * bc_screen[1] + pts[2].z() * bc_screen[2];
-        for (int i = 0; i < 3; i++) {
-          uv += uvs[i] * bc_screen[i];
-        }
-        int zbufferIndex = int(P.x() + P.y() * width);
-        if (zbuffer[zbufferIndex] < P.z()) {
+        Eigen::Vector2f uv = uvs[0] * bc_screen.x() + uvs[1] * bc_screen.y() + uvs[2] * bc_screen.z();
+        float intensity = intensities[0] * bc_screen.x() + intensities[1] * bc_screen.y() + intensities[2] * bc_screen.z();
+        float z = pts[0].z() * bc_screen.x() + pts[1].z() * bc_screen.y() + pts[2].z() * bc_screen.z();
+
+        // normalize `z` to [0, 2] -> cast to int -> clamp
+        int frag_deepth = static_cast<int>(std::max(0.0f, std::min(1.0f, (z + 1.0f) * 0.5f)) * 255);
+        if (zbuffer.get(x, y)[0] < frag_deepth) {
           TGAColor color = texture.get(int(uv.x() * texture.get_width()),
                                        int(uv.y() * texture.get_height()));
-          zbuffer[zbufferIndex] = P.z();
-          image.set(int(P.x()), int(P.y()), color * intensity);
+          zbuffer.set(x, y, TGAColor(frag_deepth));
+          image.set(x, y, color * intensity);
         }
       }
     }

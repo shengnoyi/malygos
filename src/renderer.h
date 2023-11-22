@@ -15,7 +15,7 @@ class Renderer {
   void updateMvp();
   void setProjection(const Eigen::Matrix4f& projection);
   void line(int x0, int y0, int x1, int y1, TGAImage& image, TGAColor color);
-  void triangle(Eigen::Vector3f* pts, Eigen::Vector2f* uvs, float* zbuffer, TGAImage& image, TGAImage& texture, float intensity);
+  void triangle(Eigen::Vector3f* pts, Eigen::Vector2f* uvs, TGAImage& zbuffer, TGAImage& image, TGAImage& texture, float* intensities);
 
   Eigen::Matrix4f lookAt(const Eigen::Vector3f& eye, const Eigen::Vector3f& center, const Eigen::Vector3f& up);
   Eigen::Vector3f barycentric(Eigen::Vector3f A, Eigen::Vector3f B, Eigen::Vector3f C, Eigen::Vector3f P);

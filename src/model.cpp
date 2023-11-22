@@ -29,22 +29,33 @@ Model::Model(const char *filename)
       Eigen::Vector2f v;
       for (int i = 0; i < 2; i++) iss >> v[i];
       texture_verts_.push_back(v);
+    } else if (line.compare(0, 4, "vn  ") == 0) {
+      iss >> trash;
+      iss >> trash;
+      Eigen::Vector3f v;
+      for (int i = 0; i < 3; i++) iss >> v[i];
+      normal_verts_.push_back(v);
     } else if (line.compare(0, 2, "f ") == 0) {
       std::vector<int> f;
       std::vector<int> texture;
-      int itrash, idx, texture_idx;
+      std::vector<int> normal;
+      int itrash, idx, texture_idx, normal_idx;
       iss >> trash;
-      while (iss >> idx >> trash >> texture_idx >> trash >> itrash) {
+      while (iss >> idx >> trash >> texture_idx >> trash >> normal_idx) {
         // in wavefront obj all indices start at 1, not zero
         f.push_back(idx - 1);
         texture.push_back(texture_idx - 1);
+        normal.push_back(normal_idx - 1);
       }
       faces_.push_back(f);
       face_textures_.push_back(texture);
+      face_normals_.push_back(normal);
     }
   }
 
-  std::cerr << "# v# " << verts_.size() << " vt# " << texture_verts_.size()
+  std::cerr << "# v# " << verts_.size()
+            << " vt# " << texture_verts_.size()
+            << " vn# " << normal_verts_.size()
             << " f# " << faces_.size() << std::endl;
 }
 
@@ -68,12 +79,20 @@ std::vector<int> Model::face_texture(int idx) {
   return face_textures_[idx];
 }
 
+std::vector<int> Model::face_normal(int idx) {
+  return face_normals_[idx];
+}
+
 Eigen::Vector3f Model::vert(int i) {
   return verts_[i];
 }
 
 Eigen::Vector2f Model::texture_vert(int i) {
   return texture_verts_[i];
+}
+
+Eigen::Vector3f Model::normal_vert(int i) {
+  return normal_verts_[i];
 }
 
 Model::~Model() {

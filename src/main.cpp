@@ -35,40 +35,42 @@ int main(int argc, char **argv) {
   renderer->setProjection(renderer->perspective(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -10.0f));
   renderer->updateMvp();
 
-  float *zbuffer = new float[width * height];
-  for (int i = width * height; i--;) {
-    zbuffer[i] = -std::numeric_limits<float>::max();
-  }
-
   TGAImage image(width, height, TGAImage::RGB);
+  TGAImage zbuffer(width, height, TGAImage::GRAYSCALE);
 
   Eigen::Vector3f light_dir(0, 0, -1);  // Define light_dir
-
+  light_dir.normalize();
   for (int i = 0; i < model->nfaces(); i++) {
     std::vector<int> face = model->face(i);
     std::vector<int> face_texture = model->face_texture(i);
+    std::vector<int> face_normal = model->face_normal(i);
     Eigen::Vector3f pts[3];
     Eigen::Vector2f uvs[3];
     Eigen::Vector3f world_coords[3];
+    float intensities[3];
     for (int j = 0; j < 3; j++) {
       pts[j] = renderer->world2screen(model->vert(face[j]));
       uvs[j] = model->texture_vert(face_texture[j]);
       world_coords[j] = model->vert(face[j]);
+      Eigen::Vector3f ity = model->normal_vert(face_normal[j]);
+      ity.normalize();
+      intensities[j] = std::min(std::max(0.0f, ity.dot(-light_dir)), 1.0f);
     }
     Eigen::Vector3f n = (world_coords[2] - world_coords[0]).cross(world_coords[1] - world_coords[0]);
     n.normalize();
     float intensity = n.dot(light_dir);
     if (intensity > 0) {
-      renderer->triangle(pts, uvs, zbuffer, image, texture, intensity);
+      renderer->triangle(pts, uvs, zbuffer, image, texture, intensities);
     }
   }
 
   image.flip_vertically();
+  zbuffer.flip_vertically();
   image.write_tga_file("output.tga");
+  zbuffer.write_tga_file("zbuffer.tga");
 
   delete model;
   delete renderer;
-  delete[] zbuffer;
 
   return 0;
 }
